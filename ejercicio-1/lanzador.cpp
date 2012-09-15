@@ -1,45 +1,49 @@
 #include "constantes.h"
 #include "lib/semaphore.h"
-#include <sys/shm.h>
+
+#include <errno.h>
+#include <limits.h>
+
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 #include <string.h>
+#include <unistd.h>
+
+#include <sys/msg.h>
+#include <sys/shm.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 int main(int argc, char *argv[]) {
-	int shmid; // shared memory
-	char mostrar[120];	/* mensaje para mostrar en pantalla */
-	char *pname;		/* nombre del programa */
-	int pid_pr, childpid;
-	int mutex;			/* file descriptor de los IPCs */
+	int shmTickets; 
+	int qCompras, qVentas; 
+	int mtxShm;	
 	key_t clave;
 
-	TICKETS *shmem_tickets;
-	int cantVendedores = NUM_VENDEDORES, cantClientes = NUM_CLIENTES;
-	static char param1[10]; /* string parametros del execlp */
+	char* pname = argv[0];
+	int  pid_pr = getpid(), childpid = 0;
 
-	pname = argv[0];
-	pid_pr =getpid();
+	char mostrar[300];	/* mensaje para mostrar en pantalla */
 	struct stat st; /* dir stat */
 
-	// static char param1[10] param2[10], param3[10]; /* string parametros del execlp */
+	static char param1[10]; /* string parametros del execlp */
+	TICKETS *shmem_tickets;
+	int cantVendedores = NUM_VENDEDORES, cantClientes = NUM_CLIENTES;
+
 	if(stat(FTOK_DIR,&st) != 0) {
 		sprintf (mostrar,"%s (%d): Falta el directorio de referencia Cte FTOK_DIR: %s\n", pname, pid_pr, FTOK_DIR); 
 		write(fileno(stdout), mostrar, strlen(mostrar));
 		exit(1);
 	}
 
-	// Inicializacion de la SHM
-	clave = ftok(FTOK_DIR,SHM);
-	if ((shmid = shmget (clave, sizeof(TICKETS), IPC_CREAT|IPC_EXCL|0660)) == -1) { 
+	// Inicializacion de la SHM_TICKETS
+	clave = ftok(FTOK_DIR,SHM_TICKETS);
+	if ((shmTickets = shmget (clave, sizeof(TICKETS), IPC_CREAT|IPC_EXCL|0660)) == -1) { 
 		perror ("Lanzador: error al crear la shared memory "); 
 		exit (1);
 	}
 	
-	if ((shmem_tickets = (TICKETS *) shmat(shmid,0,0)) == (TICKETS *) -1 ) { 
+	if ((shmem_tickets = (TICKETS *) shmat(shmTickets,0,0)) == (TICKETS *) -1 ) { 
 		perror ("Lanzador: error en el attach a shared memory "); 
 		exit (1);
     }
@@ -47,11 +51,29 @@ int main(int argc, char *argv[]) {
 	/* 
 	 *	 crear e inicializar el IPC semaforo mutex 
 	 */	 
-	if ((mutex = creasem (MUTEX)) == -1) 	/* IPC para exclusion mutua */{   
-		perror ("Lanzador: error al crear el (IPC) semaforo mutex"); 
+	if ((mtxShm = creasem (MUTEX_SHM)) == -1) 	/* IPC para exclusion mutua */{   
+		perror ("Lanzador: error al crear el (IPC) semaforo mutex shared memory"); 
 		exit (1);
     }
-	inisem (mutex, 1);			/* inicializarlo */
+	inisem (mtxShm, 1);			/* inicializarlo */
+
+	/*   
+	 *	crear la cola compras
+	 */ 
+	clave = ftok(FTOK_DIR, Q_COMPRAS);
+	if ((qCompras = msgget (clave, IPC_CREAT | IPC_EXCL | 0660)) == -1) {  
+		perror ("TcpServerConcurrente: error al hacer el get de la cola DESPACHO "); 
+		exit (1);
+	}
+
+	/*   
+	 *	crear la cola ventas
+	 */ 
+	clave = ftok(FTOK_DIR, Q_VENTAS);
+	if ((qVentas = msgget (clave, IPC_CREAT | IPC_EXCL | 0660)) == -1) {  
+		perror ("TcpServerConcurrente: error al hacer el get de la cola DESPACHO "); 
+		exit (1);
+	}
 
 	/*
 	 * Crear los vendedores 

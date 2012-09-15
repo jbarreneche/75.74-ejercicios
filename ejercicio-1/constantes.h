@@ -12,8 +12,11 @@ typedef struct {		/* stock de tickets */
 #define NUM_CLIENTES 3
 
 // IPCS Indexes
-#define MUTEX 101
+#define MUTEX_SHM 101
 
-#define SHM 201
+#define SHM_TICKETS 201
+
+#define Q_VENTAS  301
+#define Q_COMPRAS 302
 
 #endif

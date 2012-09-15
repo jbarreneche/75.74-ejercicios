@@ -8,38 +8,32 @@
  */
 #include "constantes.h"
 #include "lib/semaphore.h"
+
 #include <sys/shm.h>
+#include <sys/msg.h>
+#include <unistd.h>
 
 int main(int argc, char *argv[]) {
-	int shmid; //, compras1, compras2, despacho1, despacho2;
-	char mostrar[120];	/* mensaje para mostrar en pantalla */
-	char *pname;		/* nombre del programa */
-	int pid_pr;
-	int mutex;			/* file descriptor de los IPCs */
+	int shmTickets; 
+	int qCompras, qVentas; 
+	int mtxShm;	
 	key_t clave;
 
-	clave = ftok(FTOK_DIR,SHM);
-	shmid = shmget (clave, sizeof(TICKETS), 0660);
-	shmctl(shmid,IPC_RMID,(struct shmid_ds *)  0);
+	clave = ftok(FTOK_DIR, SHM_TICKETS);
+	shmTickets = shmget (clave, sizeof(TICKETS), 0660);
+	shmctl(shmTickets,IPC_RMID,(struct shmid_ds *)  0);
 
-	mutex = getsem (MUTEX);
-	elisem(mutex);
+	mtxShm = getsem (MUTEX_SHM);
+	elisem(mtxShm);
 	
-	// clave = ftok(FTOK_DIR,COLASR);
-	// compras1 = msgget (clave,0660);
-	// msgctl(compras1, IPC_RMID, NULL);
+	clave    = ftok(FTOK_DIR, Q_COMPRAS);
+	qCompras = msgget(clave,0660);
+	msgctl(qCompras, IPC_RMID, NULL);
 	
-	// clave = ftok(FTOK_DIR,COLASE);
-	// despacho1 = msgget (clave,0660);
-	// msgctl(despacho1, IPC_RMID, NULL);
+	clave   = ftok(FTOK_DIR, Q_VENTAS);
+	qVentas = msgget(clave,0660);
+	msgctl(qVentas, IPC_RMID, NULL);
 	
-	// clave = ftok(FTOK_DIR,COLACR);
-	// compras2 = msgget (clave,0660);
-	// msgctl(compras2, IPC_RMID, NULL);
-	
-	// clave = ftok(FTOK_DIR,COLACE);
-	// despacho2 = msgget (clave,0660);
-	// msgctl(despacho2, IPC_RMID, NULL);
 	return 0;
 }
 
