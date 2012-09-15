@@ -62,7 +62,7 @@ int main(int argc, char *argv[]) {
 	 */ 
 	clave = ftok(FTOK_DIR, Q_COMPRAS);
 	if ((qCompras = msgget (clave, IPC_CREAT | IPC_EXCL | 0660)) == -1) {  
-		perror ("TcpServerConcurrente: error al hacer el get de la cola DESPACHO "); 
+		perror ("Lanzador: error al hacer el get de la cola Compras "); 
 		exit (1);
 	}
 
@@ -71,7 +71,7 @@ int main(int argc, char *argv[]) {
 	 */ 
 	clave = ftok(FTOK_DIR, Q_VENTAS);
 	if ((qVentas = msgget (clave, IPC_CREAT | IPC_EXCL | 0660)) == -1) {  
-		perror ("TcpServerConcurrente: error al hacer el get de la cola DESPACHO "); 
+		perror ("Lanzador: error al hacer el get de la cola Ventas "); 
 		exit (1);
 	}
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
 		sprintf(param1, "%d\n",i+1); /* pasarle el nro de vendedor */
 
 		if ( (childpid = fork()) < 0) { 
-			perror("Lanzador: error en el fork para TcpEjemploVendedor");
+			perror("Lanzador: error en el fork para vendedor");
 			exit(1);
 		}
 		else if (childpid == 0){	 
@@ -96,18 +96,18 @@ int main(int argc, char *argv[]) {
 	}
 
 	/*
-	 * Crear los vendedores 
+	 * Crear los Clientes
 	 */
 	for (int i = 0; i < cantClientes; i++) {
 		sprintf(param1, "%d\n",i+1); /* pasarle el nro de vendedor */
 
 		if ( (childpid = fork()) < 0) { 
-			perror("Lanzador: error en el fork para TcpEjemploVendedor");
+			perror("Lanzador: error en el fork para cliente");
 			exit(1);
 		}
 		else if (childpid == 0){	 
 			/*
-			 *	 	 PROCESO HIJO (child) Vendedor
+			 *	 	 PROCESO HIJO (child) Cliente
 			 */  	
 			execlp("bin/cliente", "cliente", param1, (char *)0);
 			perror("Lanzador: error al lanzar el cliente");
