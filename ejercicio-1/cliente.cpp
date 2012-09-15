@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
 
 	FILE* 	fp;					/* archivo y estructura de compras */
 	char	primeraLinea[80];
+	int cantidad;
 
 	if (!argc) {
 		sprintf (mostrar, "Missing arguments"); 
@@ -62,7 +63,6 @@ int main(int argc, char *argv[]) {
 
 	fgets(primeraLinea,80,fp);			/* Ignorar la primera linea. */
 
-	int cantidad;
 	while(!feof(fp)){   /* descargar todo el archivo */
 		fscanf(fp,"%d %d", &cantidad, &compra.monto);
 
@@ -71,12 +71,12 @@ int main(int argc, char *argv[]) {
 
 		// Solicitar vendedor
 		envio.tipo = SOLICITAR_ATENCION;
-		if (msgsnd(qCompras, (PROTOCOLO*)&envio, sizeof(envio), 0) == -1){   
+		if (msgsnd(qCompras, &envio, sizeof(envio) - sizeof(long), 0) == -1){   
 			perror ("Cliente: Error en el envio cola compras");
 			exit(2);
 		}
 
-		if (msgrcv(qVentas, (PROTOCOLO *)&recepcion, sizeof(recepcion), clientNumber, 0) == -1){ 
+		if (msgrcv(qVentas, &recepcion, sizeof(recepcion) - sizeof(long), clientNumber, 0) == -1){ 
 			if (errno == EINVAL || errno == EIDRM) {	/* verifica si se destruyeron los IPC */
 				sprintf (mostrar,"%s (%d): TERMINA\n", pname, pid_pr); 
 				write(fileno(stdout), mostrar, strlen(mostrar));
@@ -88,8 +88,29 @@ int main(int argc, char *argv[]) {
 		}
 
 		do {
+			sprintf (mostrar,"%s (%d): Empezando nueva compra, restan %d monto %d\n", pname, pid_pr, cantidad, compra.monto); 
+			write(fileno(stdout), mostrar, strlen(mostrar));
 			cantidad--;
-			compra.mas = !cantidad;
+
+			compra.mas = cantidad > 0;
+			envio.tipo = recepcion.origen;
+			memcpy (envio.mensaje, (char *)&compra, sizeof(compra));
+			if (msgsnd(qCompras, (PROTOCOLO*)&envio, sizeof(envio) - sizeof(long), 0) == -1){   
+				perror ("Cliente: Error en el envio cola compras");
+				exit(2);
+			}
+
+			if (msgrcv(qVentas, (PROTOCOLO *)&recepcion, sizeof(recepcion) - sizeof(long), clientNumber, 0) == -1){ 
+				if (errno == EINVAL || errno == EIDRM) {	/* verifica si se destruyeron los IPC */
+					sprintf (mostrar,"%s (%d): TERMINA\n", pname, pid_pr); 
+					write(fileno(stdout), mostrar, strlen(mostrar));
+					exit(0);
+				} else {  
+					perror ("Cliente: Error en la recepcion en cola envio ");
+					exit (1);
+				}
+			}
+			memcpy ((char *)&resCompra, recepcion.mensaje, sizeof(resCompra));
 
 			if (resCompra.noHayMas) {
 				sprintf (mostrar,"%s (%d): No hay mas tickets\n", pname, pid_pr); 
