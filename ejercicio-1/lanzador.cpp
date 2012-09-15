@@ -8,10 +8,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <string.h>
-// #include <sys/resource.h>
 
 int main(int argc, char *argv[]) {
-	int shmid; //, compras1, compras2, despacho1, despacho2;
+	int shmid; // shared memory
 	char mostrar[120];	/* mensaje para mostrar en pantalla */
 	char *pname;		/* nombre del programa */
 	int pid_pr, childpid;
@@ -36,12 +35,12 @@ int main(int argc, char *argv[]) {
 	// Inicializacion de la SHM
 	clave = ftok(FTOK_DIR,SHM);
 	if ((shmid = shmget (clave, sizeof(TICKETS), IPC_CREAT|IPC_EXCL|0660)) == -1) { 
-		perror ("TcpServerConcurrente: error al crear la shared memory "); 
+		perror ("Lanzador: error al crear la shared memory "); 
 		exit (1);
 	}
 	
 	if ((shmem_tickets = (TICKETS *) shmat(shmid,0,0)) == (TICKETS *) -1 ) { 
-		perror ("TcpServerConcurrente: error en el attach a shared memory "); 
+		perror ("Lanzador: error en el attach a shared memory "); 
 		exit (1);
     }
 
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
 	 *	 crear e inicializar el IPC semaforo mutex 
 	 */	 
 	if ((mutex = creasem (MUTEX)) == -1) 	/* IPC para exclusion mutua */{   
-		perror ("TcpServerConcurrente: error al crear el (IPC) semaforo mutex"); 
+		perror ("Lanzador: error al crear el (IPC) semaforo mutex"); 
 		exit (1);
     }
 	inisem (mutex, 1);			/* inicializarlo */
@@ -61,15 +60,15 @@ int main(int argc, char *argv[]) {
 		sprintf(param1, "%d\n",i+1); /* pasarle el nro de vendedor */
 
 		if ( (childpid = fork()) < 0) { 
-			perror("TcpServerConcurrente: error en el fork para TcpEjemploVendedor");
+			perror("Lanzador: error en el fork para TcpEjemploVendedor");
 			exit(1);
 		}
 		else if (childpid == 0){	 
 			/*
 			 *	 	 PROCESO HIJO (child) Vendedor
 			 */  	
-			execlp("./vendedor", "vendedor", param1, (char *)0);
-			perror("TcpServerConcurrente: error al lanzar el vendedor");
+			execlp("bin/vendedor", "vendedor", param1, (char *)0);
+			perror("Lanzador: error al lanzar el vendedor");
 			exit(3);
 		}
 	}
@@ -81,15 +80,15 @@ int main(int argc, char *argv[]) {
 		sprintf(param1, "%d\n",i+1); /* pasarle el nro de vendedor */
 
 		if ( (childpid = fork()) < 0) { 
-			perror("TcpServerConcurrente: error en el fork para TcpEjemploVendedor");
+			perror("Lanzador: error en el fork para TcpEjemploVendedor");
 			exit(1);
 		}
 		else if (childpid == 0){	 
 			/*
 			 *	 	 PROCESO HIJO (child) Vendedor
 			 */  	
-			execlp("./cliente", "cliente", param1, (char *)0);
-			perror("TcpServerConcurrente: error al lanzar el cliente");
+			execlp("bin/cliente", "cliente", param1, (char *)0);
+			perror("Lanzador: error al lanzar el cliente");
 			exit(3);
 		}
 	}
