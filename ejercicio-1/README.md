@@ -7,8 +7,7 @@ En este caso es un problema de exclusión mutua, el semáforo asegura que solo u
 acceda y modifique a la variable en cada momento. 
 
 Un proceso inicial crea una cierta cantidad de procesos vendedores (> 2)
-que venden los tickets y un conjunto de procesos clientes (> 2) que compran los
-tickets. Los clientes pueden comprar entre 1 y 4 tickets, de a un ticket por vez. El cliente
+que venden los tickets y un conjunto de procesos clientes (> 2) que compran los tickets. Los clientes pueden comprar entre 1 y 4 tickets, de a un ticket por vez. El cliente
 envía un monto de dinero al vendedor, que verifica que el monto sea mayor o igual que el
 precio del ticket. 
 

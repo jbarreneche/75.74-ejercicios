@@ -1,15 +1,6 @@
+#include "semaphore.h"
 #include <sys/sem.h>
 #include <sys/ipc.h>
-
-#ifndef SEMAPHORE
-#define SEMAPHORE
-
-int creasem(int); // int cant
-int getsem(int);
-int inisem(int, int); // int num
-int p(int); // int num
-int v(int); // int num
-int elisem(int);
 
 /*
  *	  Funciones de semaforos
@@ -19,7 +10,7 @@ int elisem(int);
 int creasem(int identif)
 {
     key_t clave;
-    clave = ftok(FTOK_DIR, identif);
+    clave = ftok(DIRECTORIO, identif);
     return( semget(clave, 1, IPC_CREAT | IPC_EXCL | 0660));  /* da error si ya existe */
 }
 /*
@@ -28,7 +19,7 @@ int creasem(int identif)
 int getsem(int identif)
 {
     key_t clave;
-    clave = ftok(FTOK_DIR, identif);
+    clave = ftok(DIRECTORIO, identif);
     return( semget(clave, 1, 0660));
 }
 /*
@@ -75,6 +66,4 @@ int elisem(int semid)
 {
 	return (semctl (semid, 0, IPC_RMID, (struct semid_ds *) 0));
 }
-
-#endif
 
