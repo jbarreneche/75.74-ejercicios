@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/msg.h>
+#include <sys/shm.h>
 #include <errno.h>
 
 int main(int argc, char *argv[]) {
@@ -14,11 +15,14 @@ int main(int argc, char *argv[]) {
 	key_t clave;
 
 	int qCompras, qVentas; 
+	int mtxShm;	
+	int shmTickets; 
+	TICKETS *shmem_tickets;
 	PROTOCOLO envio, recepcion;
 	COMPRA compra;
 	TICKET resCompra;
 
-	int salemanNumber;
+	int salemanNumber, tiempo;
 
 	pname = argv[0];
 	pid_pr =getpid();
@@ -50,6 +54,23 @@ int main(int argc, char *argv[]) {
 		perror ("Vendedor: error al hacer el get de la cola Ventas "); 
 		exit (1);
 	}
+	// Inicializacion de la SHM_TICKETS
+	clave = ftok(FTOK_DIR,SHM_TICKETS);
+	if ((shmTickets = shmget (clave, sizeof(TICKETS), 0660)) == -1) { 
+		perror ("Vendedor: error al crear la shared memory "); 
+		exit (1);
+	}
+	if ((shmem_tickets = (TICKETS *) shmat(shmTickets,0,0)) == (TICKETS *) -1 ) { 
+		perror ("Lanzador: error en el attach a shared memory "); 
+		exit (1);
+    }
+	/* 
+	 *	  Buscar mutex
+	 */	 
+	if ((mtxShm = getsem (MUTEX_SHM)) == -1) 	/* IPC para exclusion mutua */{   
+		perror ("Vendedor: error al encontrar el (IPC) semaforo mutex shared memory"); 
+		exit (1);
+    }
 
 	envio.origen = salemanNumber;
 
@@ -96,9 +117,28 @@ int main(int argc, char *argv[]) {
 			sprintf (mostrar,"%s (%d): Atendiendo al cliente %d, pago con %d\n", pname, pid_pr, recepcion.origen, compra.monto); 
 			write(fileno(stdout), mostrar, strlen(mostrar));
 			// Acceder a SHM
-			resCompra.numero = 30;
-			resCompra.vuelto = compra.monto;
-			resCompra.noHayMas = false;
+			p(mtxShm);
+			sprintf (mostrar,"%s (%d): Consultando disponibilidad de tickets\n", pname, pid_pr, recepcion.origen, compra.monto); 
+			write(fileno(stdout), mostrar, strlen(mostrar));
+			
+			tiempo = rand() % 10;
+			sleep(tiempo); 
+
+			if (shmem_tickets->cantTickets == 0) {
+				resCompra.numero = -1;
+				resCompra.vuelto = compra.monto;
+				resCompra.noHayMas = true;
+			} else if (compra.monto < 100) {
+				resCompra.numero = -1;
+				resCompra.vuelto = compra.monto;
+				resCompra.noHayMas = false;
+			} else {
+				resCompra.numero = shmem_tickets->cantTickets;
+				shmem_tickets->cantTickets--;
+				resCompra.vuelto = compra.monto - 100;
+				resCompra.noHayMas = false;
+			}
+			v(mtxShm);
 
 			sprintf (mostrar,"%s (%d): enviando... tipo %d orig %d\n", pname, pid_pr, envio.tipo, envio.origen); 
 			memcpy (envio.mensaje, (char *)&resCompra, sizeof(resCompra));
@@ -107,7 +147,7 @@ int main(int argc, char *argv[]) {
 				exit(2);
 			}
 
-		} while(compra.mas);
+		} while(compra.mas && resCompra.numero > 0);
 
 	}
 	return 0;

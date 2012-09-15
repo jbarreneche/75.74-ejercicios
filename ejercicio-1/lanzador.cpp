@@ -47,6 +47,7 @@ int main(int argc, char *argv[]) {
 		perror ("Lanzador: error en el attach a shared memory "); 
 		exit (1);
     }
+    shmem_tickets->cantTickets = 5;
 
 	/* 
 	 *	 crear e inicializar el IPC semaforo mutex 

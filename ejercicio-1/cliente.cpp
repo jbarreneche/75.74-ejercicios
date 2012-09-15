@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
 	FILE* 	fp;					/* archivo y estructura de compras */
 	char	primeraLinea[80];
-	int cantidad;
+	int cantidad, tiempo;
 
 	if (!argc) {
 		sprintf (mostrar, "Missing arguments"); 
@@ -88,6 +88,9 @@ int main(int argc, char *argv[]) {
 		}
 
 		do {
+			tiempo = rand() % 10;
+			sleep(tiempo); 
+
 			sprintf (mostrar,"%s (%d): Empezando nueva compra, restan %d monto %d\n", pname, pid_pr, cantidad, compra.monto); 
 			write(fileno(stdout), mostrar, strlen(mostrar));
 			cantidad--;
@@ -130,6 +133,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 	fclose(fp);
+	sprintf (mostrar,"%s (%d): Termine de comprar toda mi lista\n", pname, pid_pr, resCompra.numero, resCompra.vuelto); 
+	write(fileno(stdout), mostrar, strlen(mostrar));
 
 	return 0;
 }
