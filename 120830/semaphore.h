@@ -5,10 +5,15 @@
 #define SEMAPHORE
 
 int creasem(int); // int cant
+int creasem(int, int); // int cant
 int getsem(int);
+int getsem(int, int);
 int inisem(int, int); // int num
+int inisem(int, int, int); // int num
 int p(int); // int num
+int p(int, int); // int num
 int v(int); // int num
+int v(int, int); // int num
 int elisem(int);
 
 /*
@@ -18,23 +23,36 @@ int elisem(int);
  */
 int creasem(int identif)
 {
+	return creasem(identif, 1);
+}
+int creasem(int identif, int cantidad)
+{
     key_t clave;
     clave = ftok(FTOK_DIR, identif);
-    return( semget(clave, 1, IPC_CREAT | IPC_EXCL | 0660));  /* da error si ya existe */
+    return( semget(clave, cantidad, IPC_CREAT | IPC_EXCL | 0660));  /* da error si ya existe */
 }
 /*
  *	  	adquirir derecho de acceso al set de semaforos existentes
  */
 int getsem(int identif)
 {
+	return getsem(identif, 1);
+}
+int getsem(int identif, int num)
+{
     key_t clave;
     clave = ftok(FTOK_DIR, identif);
-    return( semget(clave, 1, 0660));
+    return( semget(clave, num, 0660));
 }
 /*
  *		inicializar al semaforo del set de semaforos
  */
-int inisem(int semid,  int val)
+int inisem(int semid, int val)
+{
+	return inisem(semid, val, 0);
+}
+
+int inisem(int semid, int val, int sem_num)
 {
 	union semun {
 		int              val;		/* Value for SETVAL */
@@ -44,15 +62,18 @@ int inisem(int semid,  int val)
 								  (Linux specific) */
 	} arg;
 	arg.val = val;
-	return( semctl(semid, 0, SETVAL, arg));
+	return( semctl(semid, sem_num, SETVAL, arg));
 }
 /*
  *		ocupar al semaforo  (p) WAIT
  */
-int p(int semid)
+int p(int semid) {
+	return p(semid, 0);
+}
+int p(int semid, int sem_num)
 {
 	struct sembuf oper;
-	oper.sem_num = 0; 		/* nro de semaforo del set */
+	oper.sem_num = sem_num; 		/* nro de semaforo del set */
 	oper.sem_op =  -1;		/* p(sem) */
 	oper.sem_flg = 0;
 	return (semop (semid, &oper, 1));
@@ -60,10 +81,13 @@ int p(int semid)
 /*
  * 		liberar al semaforo  (v) SIGNAL
  */
-int v(int semid)
+int v(int semid) {
+	return v(semid, 0);
+}
+int v(int semid, int sem_num)
 {
 	struct sembuf oper;
-	oper.sem_num = 0; 		/* nro de semaforo */
+	oper.sem_num = sem_num; 		/* nro de semaforo */
 	oper.sem_op = 1;			/* v(sem) */
 	oper.sem_flg = 0;
 	return (semop (semid, &oper, 1));
